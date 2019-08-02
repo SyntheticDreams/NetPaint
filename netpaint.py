@@ -1011,7 +1011,7 @@ class DialogBox(urwid.Overlay):
 
 class NetPaint:
     """ Provides general NetPaint functionality (singleton) """
-    VERSION = "1.0"
+    VERSION = "1.0.1"
 
     ENCODING = "utf8"
 
