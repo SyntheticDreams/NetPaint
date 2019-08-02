@@ -1049,7 +1049,7 @@ class NetPaint:
                 "L: Select a new rectangular region for cut/copy/clear (Edit menu).\n\n"
                 "R: Extend selected rectangular region.\n\n\n"
                 "Stamp (m)\n----------\n"
-                "L: Paste the cut/copied region using the original or active colors.  When active colors are selected, painted characters use background color, while drawn characters use foreground and background colors.\n\n"
+                "L: Paste the cut/copied region using the original or active colors.\n\n"
                 "R: Display the stamp hint cursor.\n\n\n"
                 "Image (i)\n----------\n"
                 "View/edit image dimensions.  Click apply to update or reset to revert.\n\n\n"
