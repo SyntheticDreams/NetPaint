@@ -13,4 +13,4 @@ Available tools include:
 * Image - View/edit image dimensions.  Click apply to update or reset to revert.
 * Layer - View/edit layer information.  All tools will update the currently active layer.  All layers except 0 may be set as visible or hidden. Flattening the image will combine all layers into layer 0 (applied in order).
 
-NetPaint is programmed in Python, and makes use of the [urwid](http://urwid.org/) library for curses functionality.
+NetPaint is programmed in Python, and makes use of the [Urwid](http://urwid.org/) library for curses functionality.
