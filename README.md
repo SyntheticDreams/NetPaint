@@ -1,5 +1,5 @@
 # NetPaint
-NetPaint is a 100% text-only drawing program, compatible with any terminal emulator that supports the mouse, such as PuTTY, Konsole, iTerm2, and many others.  It was inspired by creative ASCII art and my many fond memories of dialup BBSes.  NetPaint provides a robust drawing experience completely within the terminal, allowing you to create a wide range of ASCII art, either locally or remotely.  NetPaint also exports to normal text files, allowing you to incorporate this art into server MOTDs, software manuals, or any other text environment.
+NetPaint is a 100% text-only drawing program, compatible with any terminal emulator that supports the mouse, such as PuTTY, Konsole, iTerm2, and many others.  It was inspired by creative ASCII art and my many fond memories of dialup BBSes.  NetPaint provides a robust drawing experience completely within the terminal, allowing you to create a wide range of ASCII art, either locally or remotely.  NetPaint also exports to normal text files, allowing you to incorporate your creations into server MOTDs, software manuals, or any other text environment.
 
 ![NetPaint screenshot](screenshot.png)
 
