@@ -27,7 +27,7 @@ import sys
 import time
 import urwid
 from functools import partial
-
+from PIL import Image 
 
 class WidgetManager():
     """ Manage all widgets and associated functionality """
@@ -808,6 +808,57 @@ class DrawCanvas(TextGrid):
             # End file with attribute reset
             handle.write(b"\x1B[0m")
 
+    def import_image(self, path):
+        """ Import and convert supported image """
+        full_path = os.path.expanduser(path)
+        dims = self.get_dims()
+        self.reset()
+
+        with Image.open(full_path, "r") as handle:
+            pixels = handle.getdata()
+
+            # Calculate pixels per character
+            ppc_width = handle.width / dims[1]
+            ppc_height = handle.height / dims[2]
+
+            # Generate chunk coordinates
+            chunks_width = [int(idx * ppc_width) for idx in range(int(handle.width / ppc_width))]
+            chunks_height = [int(idx * ppc_height) for idx in range(int(handle.height / ppc_height))]
+            chunks_width.append(handle.width)
+            chunks_height.append(handle.height)
+
+            for chunk_y in range(len(chunks_height) - 1):
+                for chunk_x in range(len(chunks_width) - 1):
+                    chunk_pixels = []
+
+                    # Calculate mean chunk color
+                    for idx_y in range(chunks_height[chunk_y], chunks_height[chunk_y + 1]):
+                        for idx_x in range(chunks_width[chunk_x], chunks_width[chunk_x + 1]):
+                            chunk_pixels.append(pixels[idx_y * handle.width + idx_x])
+
+                    chunk_pixels = zip(*chunk_pixels)
+                    chunk_color = [int(sum(channel) / len(channel)) for channel in chunk_pixels]
+                    NetPaint.inst.log(chunk_color)
+                    # Calculate color distances
+                    distances = []
+                    for idx, color in enumerate(NetPaint.inst.RGB_LOOKUP):
+                        distance = math.sqrt((chunk_color[0] - color[0])**2 + (chunk_color[1] - color[1])**2 + (chunk_color[2] - color[2])**2)
+                        distances.append((distance, idx))
+
+                    # Get primary and secondary, calculate ratio, choose character
+                    distances = sorted(distances)
+                    ratio = distances[0][0] / distances[1][0]
+                    if ratio > 0.66:
+                        char = bytes(chr(9618), "utf8")
+                    elif ratio > 0.33:
+                        char = bytes(chr(9617), "utf8")
+                    else:
+                        char = b" "
+                    
+                    # Draw character
+                    self.content[0][chunk_y][chunk_x] = char
+                    self.attrs[0][chunk_y][chunk_x] = (distances[1][1], distances[0][1], 0)
+
     def select_tool(self, tool):
         """ Setup selected tool"""
         self.options_tool = tool
@@ -1011,7 +1062,7 @@ class DialogBox(urwid.Overlay):
 
 class NetPaint:
     """ Provides general NetPaint functionality (singleton) """
-    VERSION = "1.0.1"
+    VERSION = "1.1.2"
 
     ENCODING = "utf8"
 
@@ -1024,6 +1075,11 @@ class NetPaint:
                ("option-edit", "black", "light gray"),
                ("status", "light cyan", "dark blue"),
                ("canvas", "yellow", "black")]
+
+    RGB_LOOKUP = [(0, 0, 0), (0x7F, 0, 0), (0, 0x7F, 0), (0x7F, 0x7F, 0),
+                  (0, 0, 0x7F), (0x7F, 0, 0x7F), (0, 0x7F, 0x7F), (0xC0, 0xC0, 0xC0),
+                  (0x7F, 0x7F, 0x7F), (0xFF, 0, 0), (0, 0xFF, 0), (0xFF, 0xFF, 0),
+                  (0, 0, 0xFF), (0xFF, 0, 0xFF), (0, 0xFF, 0xFF), (0xFF, 0xFF, 0xFF)]
 
     WELCOME_MSG = ("Welcome to NetPaint, the text-based drawing program! "
                    "This program is inspired by creative ASCII art "
@@ -1186,6 +1242,9 @@ class NetPaint:
         if button == wm.get("menu_file_save", True):
             wm.activate_overlay("dialog_save_overlay")
 
+        if button == wm.get("menu_file_imimg", True):
+            wm.activate_overlay("dialog_importimg_overlay")
+
         if button == wm.get("menu_file_exbw", True):
             wm.activate_overlay("dialog_exportbw_overlay")
 
@@ -1235,6 +1294,13 @@ class NetPaint:
             try:
                 self.canvas.save(wm.get("dialog_save_edit", True).text)
                 self.log_status("File saved successfully")
+            except Exception as e:
+                self.log_status(e, error=True)
+
+        if button == wm.get("dialog_importimg_button_Open", True):
+            try:
+                self.canvas.import_image(wm.get("dialog_importimg_edit", True).text)
+                self.log_status("File imported successfully")
             except Exception as e:
                 self.log_status(e, error=True)
 
@@ -1449,10 +1515,11 @@ class NetPaint:
         wm["menu_file_new"] = urwid.Button("New", on_press=self.menu_handler)
         wm["menu_file_open"] = urwid.Button("Open...", on_press=self.menu_handler)
         wm["menu_file_save"] = urwid.Button("Save As...", on_press=self.menu_handler)
+        wm["menu_file_imimg"] = urwid.Button("Import Image...", on_press=self.menu_handler)
         wm["menu_file_exbw"] = urwid.Button("Export B&W...", on_press=self.menu_handler)
         wm["menu_file_exclr"] = urwid.Button("Export Color...", on_press=self.menu_handler)
         wm["menu_file_exit"] = urwid.Button("Exit", on_press=self.menu_handler)
-        wm.group_add("menu_file", [wm["menu_file_new"], wm["menu_file_open"], wm["menu_file_save"], wm["divider"], wm["menu_file_exbw"], wm["menu_file_exclr"], wm["divider"], wm["menu_file_exit"]], True)
+        wm.group_add("menu_file", [wm["menu_file_new"], wm["menu_file_open"], wm["menu_file_save"], wm["divider"], wm["menu_file_imimg"], wm["menu_file_exbw"], wm["menu_file_exclr"], wm["divider"], wm["menu_file_exit"]], True)
         wm["menu_file_pile"] = urwid.Pile(wm.group_get("menu_file"))
         wm.register("menu_file_box", urwid.LineBox(wm["menu_file_pile"], ""), "menu")
         wm["menu_file_dropdown"] = urwid.Overlay(wm["menu_file_box"], wm["canvas"], align="left", width=22, valign="top", height="pack", left=1)
@@ -1589,6 +1656,8 @@ class NetPaint:
         wm.register("dialog_open_overlay", DialogBox("dialog_open", wm, "canvas", self.dialog_handler, open_config), "dialog")
         save_config = {"title": "Save File", "msg": "Enter filename path", "edit": "", "buttons": ["Save", "Cancel"]}
         wm.register("dialog_save_overlay", DialogBox("dialog_save", wm, "canvas", self.dialog_handler, save_config), "dialog")
+        importimg_config = {"title": "Import Image (Unstable!)", "msg": "Enter filename path", "edit": "", "buttons": ["Open", "Cancel"]}
+        wm.register("dialog_importimg_overlay", DialogBox("dialog_importimg", wm, "canvas", self.dialog_handler, importimg_config), "dialog")
         exportbw_config = {"title": "Export File", "msg": "Enter filename path", "edit": "", "buttons": ["Save", "Cancel"]}
         wm.register("dialog_exportbw_overlay", DialogBox("dialog_exportbw", wm, "canvas", self.dialog_handler, exportbw_config), "dialog")
         exportcolor_config = {"title": "Export File", "msg": "Enter filename path", "edit": "", "buttons": ["Save", "Cancel"]}
